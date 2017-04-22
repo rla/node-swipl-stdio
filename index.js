@@ -1,5 +1,6 @@
 const path = require('path');
 const assert = require('assert');
+const EventEmitter = require('events');
 const spawn = require('child_process').spawn;
 const split = require('split');
 const term = require('./lib/term');
@@ -8,9 +9,12 @@ const debug = require('debug')('swipl');
 // Helper class to track the engine state and
 // detect error conditions.
 
-class EngineState {
+class EngineState extends EventEmitter {
 
-    constructor() { this.setState(EngineState.ACCEPTING); }    
+    constructor() {
+        super();
+        this.setState(EngineState.ACCEPTING);
+    }
 
     isClosed() { return this.state === EngineState.CLOSED; }
     isAccepting() { return this.state === EngineState.ACCEPTING; }
@@ -24,6 +28,7 @@ class EngineState {
     setState(state) {
         this.state = state;
         debug(`Engine state set to ${state}.`);
+        this.emit('change', state);
     }
 }
 
@@ -31,6 +36,15 @@ EngineState.ACCEPTING = 'accepting'; // Accepting new queries.
 EngineState.QUERY = 'query'; // Has a fresh query instance.
 EngineState.WAITING = 'waiting'; // Waiting output from Prolog.
 EngineState.CLOSED = 'closed'; // Engine is closed.
+
+// Query waiting for another query to finish.
+
+class QueuedQuery {
+    constructor(string, deferred) {
+        this.string = string;
+        this.deferred = deferred;
+    }
+}
 
 // Prolog engine. Representing one external
 // SWI-Prolog process.
@@ -50,22 +64,41 @@ class Engine {
         this.state = new EngineState();
         this.status = 0;
         this.query = null;
+        this.queue = [];
         this.swipl.on('close', (code) => {
             this.status = code;
             this.state.setClosed();
         });
+        this.state.on('change', () => {     
+            if (this.state.isAccepting()) {                
+                // If there was queued query then
+                // start working on it.
+                const queued = this.queue.shift();
+                if (queued) {
+                    debug('Working on a queued query.');
+                    this.query = new Query(this, queued.string);
+                    this.state.setQuery();
+                    queued.deferred.resolve(this.query);
+                }
+            }
+        });
         this.swipl.stdout.pipe(split()).on('data', (line) => {
             line = line.trim();
             if (line.length === 0) {
+                // Last line, empty, do nothing.
                 return;
             }
             debug(`Received from Prolog: ${line}.`);
             if (this.state.isClosed()) {
+                // Engine is closed. Do nothing.
                 return;
             }
             try {
                 const obj = JSON.parse(line);                
                 if (this.query) {
+                    // Pass the response to the query instance.
+                    // It will apply changes to the engine state
+                    // as well.
                     this.query._response(obj);
                 }                
             } catch (err) {
@@ -74,8 +107,14 @@ class Engine {
                 if (this.query && this.query.deferred) {
                     this.query.deferred.reject(err);
                 }
+                // Reject all queued queries as well.
+                for (const queued of this.queue) {
+                    queued.reject(new Error('The engine was closed: ' + err));
+                }
             }
         });
+        // Stderr of SWI-Prolog is just redirected
+        // to the main stderr.
         this.swipl.stderr.on('data', (data) => {
             process.stderr.write(data);
         });
@@ -83,19 +122,31 @@ class Engine {
 
     // Creates a new Query instance on this engine.
 
-    createQuery(string) {
-        assert.ok(this.state.isAccepting(),
-            'Engine is ready for new queries.');
-        this.query = new Query(this, string);
-        this.state.setQuery();
-        return this.query;
+    async createQuery(string) {
+        assert.equal(typeof string, 'string',
+            'Query must be a string.');
+        assert.ok(!this.state.isClosed(),
+            'Engine must not be closed.');        
+        if (this.state.isAccepting()) {
+            // Query can be executed right now.
+            this.query = new Query(this, string);
+            this.state.setQuery();
+            return this.query;
+        } else {
+            debug('Engine busy, putting query into a queue.');
+            // Query cannot be executed now. It is put into
+            // a queue waiting until the query can be worked on.
+            const deferred = new Deferred();
+            this.queue.push(new QueuedQuery(string, deferred));
+            return deferred.promise;
+        }
     }
 
     // Helper around createQuery to extract single
     // solution.
     
     async call(string) {
-        const query = this.createQuery(string);
+        const query = await this.createQuery(string);
         try {
             // Wait until respone comes in
             // before closing the query.

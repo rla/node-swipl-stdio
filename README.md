@@ -61,7 +61,7 @@ Calling a predicate and returning all solutions:
 const swipl = require('swipl-stdio');
 const engine = new swipl.Engine();
 (async () => {
-    const query = engine.createQuery('member(X, [1,2,3,4])');
+    const query = await engine.createQuery('member(X, [1,2,3,4])');
     try {
         let result;
         while (result = await query.next()) {
@@ -83,7 +83,8 @@ Variable X value is: 3
 Variable X value is: 4
 ```
 
-There can be only one query open at a time on an engine.
+There is only one query worked on concurrently per engine.
+Multiple concurrent queries are queued.
 
 ### Output term representation
 

@@ -5,7 +5,7 @@ const engine = new swipl.Engine();
 describe('SWI-Prolog interface', () => {
 
     it('should run a simple query', async () => {
-        const query = engine.createQuery('member(X, [1,2,3,4])');
+        const query = await engine.createQuery('member(X, [1,2,3,4])');
         try {
             const result = await query.next();
             assert.equal(result.X, 1);
@@ -15,7 +15,7 @@ describe('SWI-Prolog interface', () => {
     });
 
     it('should run a query with multiple solutions', async () => {
-        const query = engine.createQuery('member(X, [1,2,3,4])');
+        const query = await engine.createQuery('member(X, [1,2,3,4])');
         try {
             const r1 = await query.next();
             assert.equal(r1.X, 1);
@@ -27,19 +27,24 @@ describe('SWI-Prolog interface', () => {
     });
 
     it('should allow to close a fresh query', async () => {
-        const query = engine.createQuery('member(X, [1,2,3,4])');
+        const query = await engine.createQuery('member(X, [1,2,3,4])');
         await query.close();
     });
 
-    it('should throw when opening multiple queries', async () => {
-        const q1 = engine.createQuery('member(X, [1,2,3,4])');
-        try {
-            engine.createQuery('member(X, [1,2,3,4])');
-        } catch (err) {
-            assert.ok(err.toString().indexOf('AssertionError: Engine is ready for new queries') >= 0);
-        } finally {
-            await q1.close();
-        }
+    it('should queue when opening multiple queries', async () => {
+        const q1 = await engine.createQuery('member(X, [1,2,3,4])');
+        await q1.next();
+        const q2 = engine.createQuery('member(X, [1,2,3,4])');
+        await q1.close();
+        await (await q2).close();
+    });
+
+    it('should queue up multiple calls too', async () => {
+        const c1 = engine.call('member(X, [1,2,3,4])');
+        const c2 = engine.call('member(X, [a,b,c,d])');
+        const results = await Promise.all([c1, c2]);
+        assert.equal(results[0].X, 1);
+        assert.equal(results[1].X, 'a');
     });
 
     it('should accept unicode atoms', async () => {
