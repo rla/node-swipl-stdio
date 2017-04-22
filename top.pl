@@ -4,6 +4,9 @@
 :- set_stream(user_output, encoding(utf8)).
 
 :- use_module(library(http/json)).
+:- use_module(library(debug)).
+
+:- debug(node).
 
 % Toplevel executor. Implemented as a
 % failure-driven loop.
@@ -21,6 +24,7 @@ read_execute_query(Out):-
     (   at_end_of_stream(user_input)
     ->  halt(0)
     ;   read_line_to_string(user_input, String),
+        debug(node, 'got input: ~w', [String]),
         atom_json_dict(String, Dict, []), !,
         (   execute_query(Out, Dict.query)
         ;   export_failure(Out) )).
@@ -30,6 +34,7 @@ read_execute_query(Out):-
 % cut once the user requests to close the query.
 
 execute_query(Out, Query):-
+    debug(node, 'executing query: ~w', [Query]),
     atom_to_term(Query, Goal, Bindings), !,
     call(Goal),
     export_bindings(Out, Bindings),
@@ -39,18 +44,21 @@ execute_query(Out, Query):-
 
 wait_want_next:-
     read_line_to_string(user_input, String), !,
+    debug(node, 'got input: ~w', [String]),
     atom_json_dict(String, Dict, []),
     Dict.action = "next".
 
 export_error(Out, Error):-
     format(string(String), '~w', [Error]),
+    debug(node, 'exporting error ~w', [Error]),
     export_dict(Out, _{
         status: "error",
         error: String
     }).
 
 export_bindings(Out, Bindings):-
-    maplist(to_pair, Bindings, Pairs),
+    debug(node, 'exporting bindings: ~w', [Bindings]),
+    maplist(to_binding_pair, Bindings, Pairs),
     dict_pairs(Dict, _, Pairs),
     export_dict(Out, _{
         status: "success",
@@ -58,11 +66,52 @@ export_bindings(Out, Bindings):-
     }).
 
 export_failure(Out):-
+    debug(node, 'exporting failure', []),
     export_dict(Out, _{ status: "fail" }).
 
 export_dict(Out, Dict):-
-    json_write_dict(Out, Dict, [width(0)]),
-    nl(Out),
+    atom_json_dict(String, Dict, [width(0), as(string)]),
+    debug(node, 'writing to output: ~w', [String]),
+    writeln(Out, String),
     flush_output(Out).
 
-to_pair(Name=Value, Name-Value).
+to_binding_pair(Name=Value, Name-Exported):-
+    export_term(Value, Exported).
+
+% Exports term into a suitable form to transport
+% over JSON.
+
+export_term(Variable, Exported):-
+    var(Variable), !,
+    format(string(String), '~w', [Variable]),
+    Exported = _{ variable: String }.
+
+export_term([], "[]"):- !.
+
+export_term(Atomic, Atomic):-
+    atomic(Atomic), !.
+
+export_term([Head|Tail], Exported):- !,
+    export_term(Head, HeadExported),
+    export_term(Tail, TailExported),
+    Exported = _{ head: HeadExported, tail: TailExported }.
+
+export_term(Dict, Exported):-
+    is_dict(Dict), !,
+    dict_pairs(Dict, Tag, Pairs),
+    maplist(export_dict_pair, Pairs, ExportedPairs),
+    dict_pairs(ContentExported, _, ExportedPairs),
+    export_term(Tag, ExportedTag),
+    Exported = _{ tag: ExportedTag, content: ContentExported }.
+
+export_term(Compound, Exported):-
+    compound(Compound), !,
+    Compound =.. [Name|Args],
+    maplist(export_term, Args, ExportedArgs),
+    Exported = _{ name: Name, args: ExportedArgs }.
+
+export_term(Term, _):-
+    throw(error(cannot_export(Term), _)).
+
+export_dict_pair(Key-Value, Key-ExportedValue):-
+    export_term(Value, ExportedValue).

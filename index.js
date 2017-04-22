@@ -1,3 +1,4 @@
+const path = require('path');
 const assert = require('assert');
 const spawn = require('child_process').spawn;
 const split = require('split');
@@ -37,11 +38,14 @@ EngineState.CLOSED = 'closed'; // Engine is closed.
 class Engine {
 
     constructor() {
+        const top = path.join(__dirname, 'top.pl');
         this.swipl = spawn('swipl', [
-            '-f', 'top.pl',
+            '-f', top,
             '-tty',
             '-q',
-            '-t', 'loop'
+            '-t', 'loop',
+            '--nodebug',
+            '-O'
         ]);
         this.state = new EngineState();
         this.status = 0;
@@ -85,6 +89,20 @@ class Engine {
         this.query = new Query(this, string);
         this.state.setQuery();
         return this.query;
+    }
+
+    // Helper around createQuery to extract single
+    // solution.
+    
+    async call(string) {
+        const query = this.createQuery(string);
+        try {
+            // Wait until respone comes in
+            // before closing the query.
+            return await query.next();
+        } finally {
+            await query.close();
+        }
     }
 
     // Closes the engine. Stops the Prolog process.
@@ -161,7 +179,7 @@ class Query {
     // resolves to the bindings object or false.
     // In case of an error, the promise is rejected.
 
-    next() {
+    async next() {
         if (this.state.isFresh()) {
             this.engine._sendQuery(this.query);
             this.deferred = new Deferred();
@@ -179,7 +197,7 @@ class Query {
 
     // Closes the query.
 
-    close() {
+    async close() {
         if (this.state.isClosed()) {
             return Promise.resolve();
         } else if (this.state.isOpen()) {
