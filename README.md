@@ -106,6 +106,12 @@ Example:
 format(user_error, 'Output to stderr.~n', []).
 ```
 
+Or use the `debug` library which writes its output to stderr as well:
+<http://www.swi-prolog.org/pldoc/man?section=debug>
+
+Normal output from SWI-Prolog (`write(something)`) has been also redirected
+through stderr.
+
 ## License
 
 The codebase uses 2-Clause BSD license. See the LICENSE file.
