@@ -103,4 +103,10 @@ describe('SWI-Prolog interface', () => {
         assert.equal(result.T.content.e, 1);
         assert.equal(typeof result.T.tag.variable, 'string');
     });
+
+    it('should output to stderr', async () => {
+        await engine.call('writeln(hello)');
+        await engine.call('writeln(user_error, hello)');
+        await engine.call('writeln(user_output, hello)');
+    });
 });
