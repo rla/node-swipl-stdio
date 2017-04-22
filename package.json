@@ -2,14 +2,19 @@
   "name": "swipl-stdio",
   "version": "1.0.0",
   "scripts": {
-    "test": "mocha tests/"
+    "test": "mocha tests/",
+    "lint": "eslint index.js lib/ tests/"
   },
   "devDependencies": {
+    "eslint": "^3.19.0",
     "mocha": "^3.2.0"
   },
   "dependencies": {
     "debug": "^2.6.4",
     "split": "^1.0.0"
+  },
+  "engines": {
+    "node" : ">=7.6.0"
   },
   "license": "BSD-2-Clause",
   "files": [

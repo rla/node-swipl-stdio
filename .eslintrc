@@ -1,0 +1,15 @@
+{
+  "parserOptions": {
+    "ecmaVersion": 8,
+    "sourceType": "script"
+  },
+  "rules": {
+    "semi": "error",
+    "no-undef": "error"
+  },
+  "env": {
+    "node": true,
+    "mocha": true,
+    "es6": true
+  }
+}
