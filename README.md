@@ -17,6 +17,8 @@ The issues fixed are:
  * Dicts can be exported from SWI-Prolog.
  * Concurrent queries by using multiple engines.
 
+[![Build Status](https://travis-ci.org/rla/node-swipl-stdio.svg?branch=master)](https://travis-ci.org/rla/node-swipl-stdio)
+
 ## Installation:
 
 You need to have SWI-Prolog installed and `swipl` binary available in `PATH`.
