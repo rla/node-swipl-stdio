@@ -5,8 +5,6 @@ This interface fixes multiple issues found when developing [node-swipl][node-swi
 
 [node-swipl]:https://github.com/rla/node-swipl
 
-It is currently work-in-progress!
-
 The issues fixed are:
 
  * No native code to maintain.
