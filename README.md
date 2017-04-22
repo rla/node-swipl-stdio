@@ -35,7 +35,7 @@ the first solution:
 
 ```js
 const swipl = require('swipl-stdio');
-// Engine represents on SWI-Prolog process.
+// Engine represents one SWI-Prolog process.
 const engine = new swipl.Engine();
 (async () => {
     const result = await engine.call('member(X, [1,2,3,4])');
