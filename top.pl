@@ -9,10 +9,13 @@
 :- debug(node).
 
 % Toplevel executor. Implemented as a
-% failure-driven loop.
+% failure-driven loop. Redirects stream
+% from user_output to stderr.
 
 loop:-
     current_output(Out),
+    set_stream(user_error, alias(user_output)),
+    set_output(user_error),
     repeat,
     catch(read_execute_query(Out), Error, true),
     (   var(Error)
