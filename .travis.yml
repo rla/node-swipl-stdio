@@ -1,0 +1,11 @@
+dist: trusty
+sudo: required
+
+before_script:
+  - sudo apt-add-repository ppa:swi-prolog/devel -y
+  - sudo apt-get update -q
+  - sudo apt-get install swi-prolog-nox
+  - nvm install 7
+  - nvm use 7
+
+script: npm install && npm run lint && npm test
