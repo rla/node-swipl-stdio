@@ -27,6 +27,66 @@ You need to have SWI-Prolog installed and `swipl` binary available in `PATH`.
 npm install swipl-stdio
 ```
 
+## Usage
+
+The package requires Node.js version 7.6+ as it makes heavy
+use of promises and async/await.
+
+Calling a predicate and returning bindings with
+the first solution:
+
+```js
+const swipl = require('swipl-stdio');
+// Engine represents on SWI-Prolog process.
+const engine = new swipl.Engine();
+(async () => {
+    const result = await engine.call('member(X, [1,2,3,4])');
+    if (result) {
+        console.log(`Variable X value is: ${result.X}`);
+    } else {
+        console.log('Call failed.');
+    }
+    // Either run more queries or stop the engine.
+    engine.close();
+})().catch((err) => console.log(err));
+```
+
+Outputs:
+
+```
+Variable X value is: 1
+```
+
+Calling a predicate and returning all solutions:
+
+```js
+const swipl = require('swipl-stdio');
+const engine = new swipl.Engine();
+(async () => {
+    const query = engine.createQuery('member(X, [1,2,3,4])');
+    try {
+        let result;
+        while (result = await query.next()) {
+            console.log(`Variable X value is: ${result.X}`);
+        }
+    } finally {
+        await query.close();
+    }
+    engine.close();
+})().catch((err) => console.log(err));
+```
+
+Outputs:
+
+```
+Variable X value is: 1
+Variable X value is: 2
+Variable X value is: 3
+Variable X value is: 4
+```
+
+There can be only one query open at a time on an engine.
+
 ### Output term representation
 
 Prolog terms in variable bindings are converted into
