@@ -1,0 +1,24 @@
+{
+  "name": "swipl-stdio",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "mocha tests/"
+  },
+  "devDependencies": {
+    "mocha": "^3.2.0"
+  },
+  "dependencies": {
+    "debug": "^2.6.4",
+    "split": "^1.0.0"
+  },
+  "license": "BSD-2-Clause",
+  "files": [
+    "lib",
+    "tests",
+    "LICENSE",
+    "README.md",
+    "index.js",
+    "package.json",
+    "top.pl"
+  ]
+}
