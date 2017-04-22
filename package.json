@@ -1,6 +1,14 @@
 {
   "name": "swipl-stdio",
-  "version": "1.0.1",
+  "version": "1.0.2",
+  "main": "index.js",
+  "description": "A Node.js interface to the SWI-Prolog.",
+  "keywords": [
+    "swi",
+    "prolog",
+    "swipl",
+    "logic"
+  ],
   "scripts": {
     "test": "mocha tests/",
     "lint": "eslint index.js lib/ tests/"
