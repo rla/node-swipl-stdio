@@ -55,7 +55,7 @@ class Engine {
         const top = path.join(__dirname, 'top.pl');
         this.swipl = spawn('swipl', [
             '-f', top,
-            '-tty',
+            '--tty 0',
             '-q',
             '-t', 'loop',
             '--nodebug',
