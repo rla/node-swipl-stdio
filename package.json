@@ -1,6 +1,6 @@
 {
   "name": "swipl-stdio",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "index.js",
   "description": "A Node.js interface to the SWI-Prolog.",
   "keywords": [
@@ -22,7 +22,7 @@
     "split": "^1.0.0"
   },
   "engines": {
-    "node" : ">=7.6.0"
+    "node": ">=7.6.0"
   },
   "license": "BSD-2-Clause",
   "files": [
